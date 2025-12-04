@@ -1,5 +1,5 @@
 import { Octokit } from '@octokit/rest';
-import { AnalysisParams, Commit, CommitStats, TimelineEvent, FileChange } from '@/types';
+import { AnalysisParams, Commit, CommitStats, TimelineEvent, FileChange, Repository, GitHubUser } from '@/types';
 
 export class GitHubAnalyzer {
     private octokit: Octokit;
@@ -198,13 +198,13 @@ export class GitHubAnalyzer {
         return keywords.filter((keyword) => messageLower.includes(keyword));
     }
 
-    async getRepositories(username: string): Promise<any[]> {
+    async getRepositories(username: string): Promise<Repository[]> {
         const { data } = await this.octokit.repos.listForUser({
             username,
             per_page: 100,
             sort: 'updated',
         });
-        return data;
+        return data as Repository[];
     }
 
     async getBranches(owner: string, repo: string): Promise<string[]> {
@@ -216,9 +216,9 @@ export class GitHubAnalyzer {
         return data.map((branch) => branch.name);
     }
 
-    async getUser(): Promise<any> {
+    async getUser(): Promise<GitHubUser> {
         const { data } = await this.octokit.users.getAuthenticated();
-        return data;
+        return data as GitHubUser;
     }
 
     generateTimeline(commits: Commit[]): TimelineEvent[] {

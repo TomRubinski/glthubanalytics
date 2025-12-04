@@ -31,14 +31,15 @@ export default function ActivityHeatmap({ data, startDate, endDate }: ActivityHe
                         if (!value) return styles.color0;
                         return getColorClass(value.count);
                     }}
-                    tooltipDataAttrs={(value: any) => {
-                        if (!value || !value.date) {
+                    tooltipDataAttrs={((value: unknown) => {
+                        const heatmapValue = value as HeatmapData | undefined;
+                        if (!heatmapValue || !heatmapValue.date) {
                             return { 'data-tip': 'Sem dados' };
                         }
                         return {
-                            'data-tip': `${value.date}: ${value.count} commit${value.count !== 1 ? 's' : ''}`,
+                            'data-tip': `${heatmapValue.date}: ${heatmapValue.count} commit${heatmapValue.count !== 1 ? 's' : ''}`,
                         };
-                    }}
+                    }) as unknown as ((value: unknown) => Record<string, string>)}
                     showWeekdayLabels
                 />
             </div>

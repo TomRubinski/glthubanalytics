@@ -34,8 +34,8 @@ export default async function handler(
         const timeline = analyzer.generateTimeline(commits);
 
         res.status(200).json(timeline);
-    } catch (error: any) {
+    } catch (error) {
         console.error('Timeline fetch error:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch timeline' });
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch timeline' });
     }
 }

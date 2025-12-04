@@ -76,9 +76,9 @@ export async function generatePDFReport(report: AnalysisReport): Promise<void> {
         pdf.setTextColor(100, 100, 100);
         pdf.text(stat.label + ':', 20, yPosition);
         pdf.setTextColor(124, 58, 237);
-        pdf.setFont(undefined, 'bold');
+        pdf.setFont('helvetica', 'bold');
         pdf.text(stat.value, 100, yPosition);
-        pdf.setFont(undefined, 'normal');
+        pdf.setFont('helvetica', 'normal');
         yPosition += 7;
     });
 

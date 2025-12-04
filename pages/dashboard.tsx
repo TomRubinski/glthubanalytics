@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/router';
+import Image from 'next/image';
 import StatsGrid from '@/components/StatsGrid';
 import {
     CommitsOverTimeChart,
-    LinesChangedChart,
     LanguageDistributionChart,
     HourlyActivityChart,
 } from '@/components/Charts';
@@ -12,7 +12,6 @@ import { CommitStats, Repository } from '@/types';
 import { generatePDFReport } from '@/lib/pdf-generator';
 import {
     prepareCommitsOverTimeData,
-    prepareLinesChangedWeeklyData,
     prepareLanguageDistributionData,
     prepareHourlyActivityData,
 } from '@/lib/chart-utils';
@@ -39,33 +38,21 @@ export default function Dashboard() {
         }
     }, [status, router]);
 
-    useEffect(() => {
-        if (session?.user) {
-            fetchRepositories();
-        }
-    }, [session]);
-
-    useEffect(() => {
-        if (selectedRepo) {
-            fetchBranches();
-        }
-    }, [selectedRepo]);
-
-    const fetchRepositories = async () => {
+    const fetchRepositories = useCallback(async () => {
         setLoading(true);
         try {
             const response = await fetch(`/api/repositories?username=${session?.login}`);
             if (!response.ok) throw new Error('Failed to fetch repositories');
             const data = await response.json();
             setRepositories(data);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setLoading(false);
         }
-    };
+    }, [session]);
 
-    const fetchBranches = async () => {
+    const fetchBranches = useCallback(async () => {
         if (!selectedRepo) return;
 
         const [owner, repo] = selectedRepo.split('/');
@@ -77,10 +64,22 @@ export default function Dashboard() {
             if (data.length > 0) {
                 setSelectedBranch(data.find((b: string) => b === 'main' || b === 'master') || data[0]);
             }
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
         }
-    };
+    }, [selectedRepo]);
+
+    useEffect(() => {
+        if (session?.user) {
+            fetchRepositories();
+        }
+    }, [session, fetchRepositories]);
+
+    useEffect(() => {
+        if (selectedRepo) {
+            fetchBranches();
+        }
+    }, [selectedRepo, fetchBranches]);
 
     const handleAnalyze = async () => {
         if (!selectedRepo || !startDate || !endDate) {
@@ -113,8 +112,8 @@ export default function Dashboard() {
 
             const data = await response.json();
             setStats(data);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setAnalyzing(false);
         }
@@ -165,12 +164,14 @@ export default function Dashboard() {
                         GitHub Analytics
                     </h1>
                     <div className={styles.userSection}>
-                        <img
-                            src={(session?.user as any)?.image || '/default-avatar.png'}
+                        <Image
+                            src={(session?.user?.image as string) || '/default-avatar.png'}
                             alt="User avatar"
                             className={styles.avatar}
+                            width={40}
+                            height={40}
                         />
-                        <span className={styles.username}>{(session?.user as any)?.name}</span>
+                        <span className={styles.username}>{session?.user?.name as string}</span>
                         <button onClick={() => signOut()} className={styles.logoutBtn}>
                             Sair
                         </button>

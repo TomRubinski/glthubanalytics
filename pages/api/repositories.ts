@@ -28,8 +28,8 @@ export default async function handler(
         const repositories = await analyzer.getRepositories(username);
 
         res.status(200).json(repositories);
-    } catch (error: any) {
+    } catch (error) {
         console.error('Repositories fetch error:', error);
-        res.status(500).json({ error: error.message || 'Failed to fetch repositories' });
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Failed to fetch repositories' });
     }
 }

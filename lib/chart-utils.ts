@@ -1,4 +1,4 @@
-import { CommitStats, ChartData, HeatmapData } from '@/types';
+import { CommitStats, ChartData, HeatmapData, Commit, CommitFile } from '@/types';
 import { format, eachDayOfInterval, parseISO } from 'date-fns';
 
 export function prepareCommitsOverTimeData(
@@ -21,9 +21,7 @@ export function prepareCommitsOverTimeData(
 }
 
 export function prepareLinesChangedWeeklyData(
-    commits: any[],
-    startDate: string,
-    endDate: string
+    commits: Commit[]
 ): ChartData[] {
     const weeklyData = new Map<string, { additions: number; deletions: number }>();
 
@@ -131,11 +129,11 @@ export function getMostProductiveTime(commitsByHour: Record<number, number>): st
     return 'Madrugada';
 }
 
-export function getTopFiles(commits: any[]): Array<{ name: string; changes: number }> {
+export function getTopFiles(commits: Commit[]): Array<{ name: string; changes: number }> {
     const fileChanges = new Map<string, number>();
 
     commits.forEach((commit) => {
-        commit.files?.forEach((file: any) => {
+        commit.files?.forEach((file: CommitFile) => {
             const current = fileChanges.get(file.filename) || 0;
             fileChanges.set(file.filename, current + file.changes);
         });

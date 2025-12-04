@@ -18,8 +18,8 @@ export const authOptions: NextAuthOptions = {
             if (account) {
                 token.accessToken = account.access_token;
             }
-            if (profile) {
-                token.login = (profile as any).login;
+            if (profile && 'login' in profile) {
+                token.login = profile.login as string;
             }
             return token;
         },

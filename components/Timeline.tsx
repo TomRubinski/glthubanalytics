@@ -1,6 +1,5 @@
 import React from 'react';
 import { TimelineEvent } from '@/types';
-import { formatDate } from '@/lib/pdf-generator';
 import styles from './Timeline.module.css';
 
 interface TimelineProps {

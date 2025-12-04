@@ -35,8 +35,8 @@ export default async function handler(
         });
 
         res.status(200).json(stats);
-    } catch (error: any) {
+    } catch (error) {
         console.error('Analysis error:', error);
-        res.status(500).json({ error: error.message || 'Analysis failed' });
+        res.status(500).json({ error: error instanceof Error ? error.message : 'Analysis failed' });
     }
 }

@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import LoginCard from '@/components/LoginCard';
 
 export default function Home() {
-    const { data: session, status } = useSession();
+    const { status } = useSession();
     const router = useRouter();
 
     useEffect(() => {
