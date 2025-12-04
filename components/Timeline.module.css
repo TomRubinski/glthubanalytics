@@ -1,0 +1,194 @@
+.container {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-xl);
+    transition: all var(--transition-base);
+}
+
+.container:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: var(--shadow-xl);
+}
+
+.title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-xl);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: var(--gradient-primary);
+    border-radius: 2px;
+}
+
+.timeline {
+    position: relative;
+}
+
+.event {
+    display: grid;
+    grid-template-columns: 80px 40px 1fr;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-xl);
+    animation: slideIn 0.5s ease-out backwards;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.date {
+    text-align: center;
+    padding: var(--spacing-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--glass-border);
+}
+
+.dateDay {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1;
+}
+
+.dateMonth {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    margin-top: var(--spacing-xs);
+}
+
+.connector {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.dot {
+    width: 16px;
+    height: 16px;
+    background: var(--gradient-primary);
+    border-radius: 50%;
+    border: 3px solid var(--bg-primary);
+    flex-shrink: 0;
+    z-index: 1;
+    box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
+}
+
+.line {
+    width: 2px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--color-primary), transparent);
+    margin-top: 4px;
+}
+
+.content {
+    padding-bottom: var(--spacing-md);
+}
+
+.commits {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.commit {
+    padding: var(--spacing-md);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-base);
+}
+
+.commit:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--color-primary);
+    transform: translateX(4px);
+}
+
+.commitHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+}
+
+.commitSha {
+    font-family: 'Courier New', monospace;
+    font-size: 0.75rem;
+    color: var(--color-primary);
+    background: rgba(124, 58, 237, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.commitStats {
+    display: flex;
+    gap: var(--spacing-sm);
+    font-size: 0.75rem;
+}
+
+.additions {
+    color: #10b981;
+}
+
+.deletions {
+    color: #ef4444;
+}
+
+.files {
+    color: var(--text-tertiary);
+}
+
+.commitMessage {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.moreCommits {
+    padding: var(--spacing-sm);
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--glass-border);
+}
+
+@media (max-width: 768px) {
+    .event {
+        grid-template-columns: 60px 30px 1fr;
+    }
+
+    .dateDay {
+        font-size: 1.25rem;
+    }
+
+    .commitHeader {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
