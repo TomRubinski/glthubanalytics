@@ -198,13 +198,73 @@ export class GitHubAnalyzer {
         return keywords.filter((keyword) => messageLower.includes(keyword));
     }
 
-    async getRepositories(username: string): Promise<Repository[]> {
-        const { data } = await this.octokit.repos.listForUser({
-            username,
-            per_page: 100,
-            sort: 'updated',
-        });
-        return data as Repository[];
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    async getRepositories(_username?: string): Promise<Repository[]> {
+        const allRepositories: Repository[] = [];
+
+        // 1. Buscar todos os repositórios do usuário autenticado (públicos e privados)
+        let page = 1;
+        while (true) {
+            const { data } = await this.octokit.repos.listForAuthenticatedUser({
+                per_page: 100,
+                page,
+                sort: 'updated',
+                affiliation: 'owner,collaborator,organization_member',
+            });
+
+            if (data.length === 0) break;
+            allRepositories.push(...(data as Repository[]));
+            if (data.length < 100) break;
+            page++;
+        }
+
+        // 2. Buscar organizações do usuário
+        try {
+            const { data: orgs } = await this.octokit.orgs.listForAuthenticatedUser({
+                per_page: 100,
+            });
+
+            // 3. Para cada organização, buscar os repositórios
+            for (const org of orgs) {
+                let orgPage = 1;
+                while (true) {
+                    try {
+                        const { data: orgRepos } = await this.octokit.repos.listForOrg({
+                            org: org.login,
+                            per_page: 100,
+                            page: orgPage,
+                            sort: 'updated',
+                            type: 'all',
+                        });
+
+                        if (orgRepos.length === 0) break;
+
+                        // Adicionar apenas se não existir (evita duplicatas)
+                        for (const repo of orgRepos) {
+                            if (!allRepositories.find(r => r.id === repo.id)) {
+                                allRepositories.push(repo as Repository);
+                            }
+                        }
+
+                        if (orgRepos.length < 100) break;
+                        orgPage++;
+                    } catch {
+                        // Se não tiver acesso a algum repo da org, continua
+                        console.warn(`Não foi possível acessar alguns repos da org ${org.login}`);
+                        break;
+                    }
+                }
+            }
+        } catch (error) {
+            console.warn('Não foi possível listar organizações:', error);
+        }
+
+        // Ordenar por data de atualização
+        allRepositories.sort((a, b) =>
+            new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+        );
+
+        return allRepositories;
     }
 
     async getBranches(owner: string, repo: string): Promise<string[]> {

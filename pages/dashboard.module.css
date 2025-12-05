@@ -168,6 +168,14 @@
     cursor: not-allowed;
 }
 
+.repoLegend {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin-top: var(--spacing-xs);
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
 .error {
     padding: var(--spacing-md) var(--spacing-lg);
     background: rgba(239, 68, 68, 0.1);

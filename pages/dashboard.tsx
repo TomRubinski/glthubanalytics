@@ -8,7 +8,9 @@ import {
     LanguageDistributionChart,
     HourlyActivityChart,
 } from '@/components/Charts';
+import AIInsights from '@/components/AIInsights';
 import { CommitStats, Repository } from '@/types';
+import { AIAnalysisResult } from '@/lib/ai-analyzer';
 import { generatePDFReport } from '@/lib/pdf-generator';
 import {
     prepareCommitsOverTimeData,
@@ -31,6 +33,11 @@ export default function Dashboard() {
     const [analyzing, setAnalyzing] = useState(false);
     const [stats, setStats] = useState<CommitStats | null>(null);
     const [error, setError] = useState<string>('');
+
+    // AI Analysis states
+    const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
 
     useEffect(() => {
         if (status === 'unauthenticated') {
@@ -112,10 +119,49 @@ export default function Dashboard() {
 
             const data = await response.json();
             setStats(data);
+
+            // Clear AI analysis when new analysis is performed
+            setAiAnalysis(null);
+            setAiError(null);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
             setAnalyzing(false);
+        }
+    };
+
+    const handleAIAnalysis = async () => {
+        if (!selectedRepo || !startDate || !endDate) return;
+
+        setAiLoading(true);
+        setAiError(null);
+
+        try {
+            const [owner, repo] = selectedRepo.split('/');
+            const response = await fetch('/api/ai-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    owner,
+                    repo,
+                    author: session?.login || '',
+                    since: new Date(startDate).toISOString(),
+                    until: new Date(endDate).toISOString(),
+                    branch: selectedBranch || undefined,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'AI Analysis failed');
+            }
+
+            const data = await response.json();
+            setAiAnalysis(data);
+        } catch (err) {
+            setAiError(err instanceof Error ? err.message : 'AI analysis failed');
+        } finally {
+            setAiLoading(false);
         }
     };
 
@@ -192,12 +238,21 @@ export default function Dashboard() {
                                 className={styles.select}
                             >
                                 <option value="">Selecione um repositório</option>
-                                {repositories.map((repo) => (
-                                    <option key={repo.id} value={repo.full_name}>
-                                        {repo.full_name}
-                                    </option>
-                                ))}
+                                {repositories.map((repo) => {
+                                    const isOrg = repo.owner.login !== session?.login;
+                                    const icon = repo.private ? '🔒 ' : '';
+                                    const orgIcon = isOrg ? '🏢 ' : '';
+                                    return (
+                                        <option key={repo.id} value={repo.full_name}>
+                                            {icon}{orgIcon}{repo.full_name}
+                                        </option>
+                                    );
+                                })}
                             </select>
+                            <div className={styles.repoLegend}>
+                                <span>🔒 Privado</span>
+                                <span>🏢 Organização</span>
+                            </div>
                         </div>
 
                         <div className={styles.inputGroup}>
@@ -323,6 +378,15 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* AI Analysis Section */}
+                        <AIInsights
+                            analysis={aiAnalysis}
+                            loading={aiLoading}
+                            error={aiError}
+                            onAnalyze={handleAIAnalysis}
+                            disabled={!stats || analyzing}
+                        />
                     </div>
                 )}
             </main>
