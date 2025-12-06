@@ -14,6 +14,7 @@ export interface AIAnalysisResult {
     strengths: string[];
     areasOfImprovement: string[];
     commitQualityAnalysis: CommitQualityAnalysis;
+    implementedFeatures: string[];
 }
 
 export interface XYZFeedback {
@@ -42,7 +43,20 @@ export class AIAnalyzer {
 
     async analyzeContributions(
         stats: CommitStats,
-        commits: Array<{ message: string; sha: string; date: string; additions: number; deletions: number }>,
+        commits: Array<{
+            message: string;
+            sha: string;
+            date: string;
+            additions: number;
+            deletions: number;
+            files?: Array<{
+                filename: string;
+                status: string;
+                additions: number;
+                deletions: number;
+                patch: string;
+            }>;
+        }>,
         params: { owner: string; repo: string; author: string; since: string; until: string }
     ): Promise<AIAnalysisResult> {
         const prompt = this.buildAnalysisPrompt(stats, commits, params);
@@ -69,7 +83,7 @@ IMPORTANTE: Responda APENAS com um objeto JSON válido, sem texto adicional ante
                 }
             ],
             temperature: 0.7,
-            max_tokens: 2000,
+            max_tokens: 4000,
         });
 
         const content = response.choices[0]?.message?.content;
@@ -82,12 +96,45 @@ IMPORTANTE: Responda APENAS com um objeto JSON válido, sem texto adicional ante
 
     private buildAnalysisPrompt(
         stats: CommitStats,
-        commits: Array<{ message: string; sha: string; date: string; additions: number; deletions: number }>,
+        commits: Array<{
+            message: string;
+            sha: string;
+            date: string;
+            additions: number;
+            deletions: number;
+            files?: Array<{
+                filename: string;
+                status: string;
+                additions: number;
+                deletions: number;
+                patch: string;
+            }>;
+        }>,
         params: { owner: string; repo: string; author: string; since: string; until: string }
     ): string {
-        const commitMessages = commits.slice(0, 50).map(c =>
-            `- "${c.message}" (+${c.additions}/-${c.deletions})`
-        ).join('\n');
+        // Selecionar commits mais significativos (por tamanho de mudança) para análise detalhada
+        const significantCommits = [...commits]
+            .sort((a, b) => (b.additions + b.deletions) - (a.additions + a.deletions))
+            .slice(0, 15);
+
+        // Construir análise detalhada dos commits com diffs
+        const detailedCommitsAnalysis = significantCommits.map(commit => {
+            const filesInfo = commit.files?.slice(0, 5).map(f => {
+                // Limitar tamanho do patch para não exceder limite de tokens
+                const patchPreview = f.patch ? f.patch.substring(0, 800) : '';
+                return `  - ${f.filename} (${f.status}): +${f.additions}/-${f.deletions}
+    Mudanças:
+\`\`\`
+${patchPreview}${patchPreview.length >= 800 ? '\n... (truncado)' : ''}
+\`\`\``;
+            }).join('\n') || '  (sem detalhes de arquivos)';
+
+            return `### Commit: ${commit.sha.substring(0, 7)} - ${commit.date.split('T')[0]}
+Mensagem: "${commit.message}"
+Impacto: +${commit.additions}/-${commit.deletions} linhas
+Arquivos modificados:
+${filesInfo}`;
+        }).join('\n\n');
 
         const topLanguages = Object.entries(stats.languageDistribution)
             .sort((a, b) => b[1] - a[1])
@@ -95,14 +142,12 @@ IMPORTANTE: Responda APENAS com um objeto JSON válido, sem texto adicional ante
             .map(([lang, changes]) => `${lang}: ${changes} mudanças`)
             .join(', ');
 
-        const topKeywords = Object.entries(stats.commitKeywords)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, 10)
-            .map(([kw, count]) => `${kw} (${count}x)`)
-            .join(', ');
-
-        return `Analise as contribuições do desenvolvedor "${params.author}" no repositório "${params.owner}/${params.repo}" 
+        return `Analise PROFUNDAMENTE as contribuições do desenvolvedor "${params.author}" no repositório "${params.owner}/${params.repo}" 
 no período de ${params.since} a ${params.until}.
+
+## IMPORTANTE: Análise Qualitativa das Mudanças
+Abaixo estão os commits mais significativos com os DIFFS reais do código.
+Analise O QUE FOI IMPLEMENTADO, MELHORADO OU CORRIGIDO baseando-se no código real, não apenas nas estatísticas.
 
 ## Estatísticas Gerais:
 - Total de commits: ${stats.totalCommits}
@@ -115,37 +160,50 @@ no período de ${params.since} a ${params.until}.
 ## Linguagens mais utilizadas:
 ${topLanguages}
 
-## Palavras-chave mais frequentes nos commits:
-${topKeywords || 'Nenhuma keyword padrão encontrada'}
-
-## Maior commit:
-"${stats.largestCommit.message}" com ${stats.largestCommit.changes} mudanças
-
-## Amostra de mensagens de commit (últimos 50):
-${commitMessages}
+## ANÁLISE DETALHADA DOS COMMITS COM DIFFS:
+${detailedCommitsAnalysis}
 
 ## Distribuição por dia da semana:
 ${Object.entries(stats.commitsByWeekday).map(([day, count]) => `${day}: ${count} commits`).join(', ')}
 
+---
+
+## INSTRUÇÕES PARA ANÁLISE:
+
+1. **ANALISE O CÓDIGO REAL nos diffs** - Não se baseie apenas nos números ou mensagens de commit.
+   
+2. **Identifique FUNCIONALIDADES IMPLEMENTADAS** - O que o desenvolvedor construiu? Quais features novas?
+
+3. **Identifique MELHORIAS** - O código foi refatorado? Performance melhorada? Bugs corrigidos?
+
+4. **Use o formato XYZ para cada insight**:
+   - X (Situação): O contexto técnico do que existia ou era necessário
+   - Y (Comportamento/Ação): O que exatamente foi implementado/alterado (baseado no código)
+   - Z (Impacto): Qual o benefício concreto dessa mudança
+
 Forneça uma análise completa em formato JSON com a seguinte estrutura:
 {
-    "executiveSummary": "Resumo executivo de 2-3 parágrafos sobre a produtividade e contribuições do desenvolvedor",
+    "executiveSummary": "Resumo executivo de 2-3 parágrafos focando NO QUE FOI CONSTRUÍDO/MELHORADO, não em números. Seja específico sobre as funcionalidades e melhorias implementadas.",
     "xyzFeedback": [
         {
-            "situation": "X - Contexto observado",
-            "behavior": "Y - Comportamento específico",
-            "impact": "Z - Impacto resultante",
+            "situation": "X - Contexto técnico específico (ex: 'O sistema não tinha validação de entrada no formulário de login')",
+            "behavior": "Y - O que foi implementado (ex: 'Implementou validação client-side com regex para email e força de senha')",
+            "impact": "Z - Benefício concreto (ex: 'Reduz erros de usuário e melhora segurança antes do envio ao servidor')",
             "type": "positive | improvement | neutral"
         }
     ],
-    "recommendations": ["Lista de recomendações acionáveis"],
+    "recommendations": ["Lista de recomendações técnicas específicas baseadas no código analisado"],
     "productivityScore": 0-100,
-    "strengths": ["Pontos fortes identificados"],
-    "areasOfImprovement": ["Áreas que podem ser melhoradas"],
-    "commitQualitySuggestions": ["Sugestões para melhorar as mensagens de commit"]
+    "strengths": ["Pontos fortes TÉCNICOS identificados no código (patterns, qualidade, etc)"],
+    "areasOfImprovement": ["Áreas técnicas que podem ser melhoradas baseando-se no código visto"],
+    "commitQualitySuggestions": ["Sugestões para melhorar as mensagens de commit"],
+    "implementedFeatures": ["Lista das funcionalidades/melhorias identificadas nos diffs"]
 }
 
-Inclua pelo menos 3-5 feedbacks XYZ cobrindo diferentes aspectos das contribuições.`;
+IMPORTANTE: 
+- Gere pelo menos 5-8 feedbacks XYZ cobrindo diferentes aspectos técnicos das contribuições.
+- Cada feedback XYZ deve ser ESPECÍFICO e baseado no código real analisado, não genérico.
+- O campo "implementedFeatures" deve listar as features/melhorias concretas identificadas.`
     }
 
     private parseAIResponse(
@@ -184,7 +242,8 @@ Inclua pelo menos 3-5 feedbacks XYZ cobrindo diferentes aspectos das contribuiç
             commitQualityAnalysis: {
                 ...commitQualityAnalysis,
                 suggestions: parsed.commitQualitySuggestions || []
-            }
+            },
+            implementedFeatures: parsed.implementedFeatures || []
         };
     }
 

@@ -128,6 +128,26 @@ export default function AIInsights({
                         <p className={styles.summaryText}>{analysis.executiveSummary}</p>
                     </div>
 
+                    {/* Implemented Features */}
+                    {analysis.implementedFeatures && analysis.implementedFeatures.length > 0 && (
+                        <div className={styles.featuresCard}>
+                            <h3 className={styles.cardTitle}>
+                                <span>🚀</span> Funcionalidades Implementadas/Melhoradas
+                            </h3>
+                            <p className={styles.featuresSubtitle}>
+                                Baseado na análise do código real (diffs dos commits)
+                            </p>
+                            <div className={styles.featuresList}>
+                                {analysis.implementedFeatures.map((feature, index) => (
+                                    <div key={index} className={styles.featureItem}>
+                                        <span className={styles.featureIcon}>✨</span>
+                                        <p>{feature}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                     {/* XYZ Feedback Section */}
                     <div className={styles.xyzSection}>
                         <h3 className={styles.cardTitle}>

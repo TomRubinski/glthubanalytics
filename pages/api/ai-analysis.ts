@@ -53,13 +53,20 @@ export default async function handler(
             branch,
         });
 
-        // Preparar dados para análise IA
+        // Preparar dados para análise IA - incluindo os patches (diffs) dos arquivos
         const commitsForAI = commits.map(c => ({
             message: c.commit.message,
             sha: c.sha,
             date: c.commit.author.date,
             additions: c.stats?.additions || 0,
             deletions: c.stats?.deletions || 0,
+            files: c.files?.map(f => ({
+                filename: f.filename,
+                status: f.status,
+                additions: f.additions,
+                deletions: f.deletions,
+                patch: f.patch || '',
+            })) || [],
         }));
 
         // Analisar com IA
